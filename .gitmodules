@@ -1,0 +1,46 @@
+[submodule "third_party/libpcap"]
+	path = third_party/libpcap
+	url = https://github.com/the-tcpdump-group/libpcap.git
+
+[submodule "third_party/libbpf"]
+	path = third_party/libbpf
+	url = https://github.com/libbpf/libbpf.git
+
+[submodule "third_party/libelf"]
+	path = third_party/elfutils
+	url = https://sourceware.org/git/elfutils.git
+
+[submodule "third_party/zlib"]
+	path = third_party/zlib
+	url = https://github.com/madler/zlib.git
+
+[submodule "third_party/sqlite"]
+	path = third_party/sqlite
+	url = https://github.com/sqlite/sqlite.git
+
+[submodule "third_party/nlohmann_json"]
+	path = third_party/nlohmann_json
+	url = https://github.com/nlohmann/json.git
+
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog.git
+
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = https://github.com/fmtlib/fmt.git
+
+[submodule "third_party/asio"]
+	path = third_party/asio
+	url = https://github.com/chriskohlhoff/asio.git
+
+[submodule "third_party/libcap"]
+	path = third_party/libcap
+	url = https://git.kernel.org/pub/scm/libs/libcap/libcap.git
+
+[submodule "third_party/libseccomp"]
+	path = third_party/libseccomp
+	url = https://github.com/seccomp/libseccomp.git
+[submodule "third_party/elfutils"]
+	path = third_party/elfutils
+	url = https://sourceware.org/git/elfutils.git
