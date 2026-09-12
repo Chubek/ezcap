@@ -42,6 +42,25 @@ Note: ninja is not used; the presets default to Unix Makefiles. Pass
 
 ## Building the extension
 
+The extension is built as part of the CMake build (`add_subdirectory(extension)`),
+so `cmake --build --preset default` also produces `extension/dist/chromium` and
+`extension/dist/firefox`. If `node`/`npm` (or a TypeScript compiler) is missing,
+the extension target is skipped with a status message and the rest of ezcap
+still builds.
+
+To additionally package browser-loadable archives:
+
+```sh
+cmake --preset default -DCMAKE_BUILD_EXT_ARCHIVE=ON
+cmake --build --preset default
+```
+
+This produces `build/extension/ezcap-chromium-<version>.zip` and
+`build/extension/ezcap-firefox-<version>.xpi`, each containing the manifest at
+the archive root. The option is `OFF` by default.
+
+Builds can also be run directly, without CMake:
+
 ```sh
 cd extension
 npm install        # devDependency: typescript
