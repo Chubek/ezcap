@@ -1,0 +1,11 @@
+{
+  "name": "dns-summary",
+  "version": "1.0.0",
+  "script": "scripts/lua/dns-summary.lua",
+  "description": "First-party example: aggregated DNS response-code counts from redacted metadata.",
+  "script_sha256": "6a51dedd70f9782bcd4e2a35f64943a52fd726cb714d17b5d2d2407a7237e632",
+  "capabilities": ["dns", "events", "endpoint", "log"],
+  "event_types": ["dns"],
+  "max_endpoints": 2,
+  "max_subscriptions": 4
+}

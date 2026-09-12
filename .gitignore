@@ -1,3 +1,7 @@
+generated/
+generated_*
+generated-*/
+
 # Agents extension
 AGENTS_*.md
 

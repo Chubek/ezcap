@@ -56,6 +56,15 @@ add_library(ezcap_core STATIC
   src/daemon/daemon.cpp
   src/storage/migrations.cpp
   src/storage/sqlite_store.cpp
+  src/common/sha256.cpp
+  src/drivers/lua/manifests/manifest.cpp
+  src/drivers/lua/manifests/manifest_hash.cpp
+  src/drivers/lua/sandbox.cpp
+  src/drivers/lua/bindings/lezcap.cpp
+  src/drivers/driver_engine.cpp
+  src/specgen/model/descriptor.cpp
+  src/specgen/emitters/emitters.cpp
+  src/specgen/specgen.cpp
 )
 
 target_include_directories(ezcap_core PUBLIC
@@ -71,6 +80,7 @@ target_link_libraries(ezcap_core PUBLIC
   ezcap::libbpf
   ezcap::libcap
   ezcap::libseccomp
+  ezcap::luajit
 )
 
 # The eBPF object is loaded from a fixed install path, never configurable.
@@ -158,4 +168,9 @@ if(UNIX)
     "${CMAKE_CURRENT_SOURCE_DIR}/native_host/install/install-linux.sh"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_host/install/uninstall-linux.sh"
     DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ezcap")
+  # First-party bundled Lua drivers + manifests.
+  install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/scripts/lua/dns-summary.lua"
+    "${CMAKE_CURRENT_SOURCE_DIR}/scripts/lua/dns-summary.manifest.json"
+    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ezcap/drivers")
 endif()

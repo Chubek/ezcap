@@ -146,18 +146,35 @@ int host_panic(lua_State* L) {
 // `load` is on this list: with bytecode rejected at the loader and
 // string.dump removed, `load`-from-source remains, but removing it outright
 // keeps the set of executable-code entry points to the host loader alone.
+// `bit` (LuaJIT's bit operations library) is removed with it: it offers no
+// capability the curated lezcap.util surface does not already cover.
 constexpr const char* kForbiddenGlobals[] = {
     "io",       "os",       "package", "debug",    "require",
     "dofile",   "loadfile", "ffi",     "jit",      "collectgarbage",
-    "newproxy", "load",     "loadstring",
+    "newproxy", "load",     "loadstring", "bit",
 };
 
 void scrub_globals(lua_State* L, const char* const* names,
                    std::size_t count) {
+  // LuaJIT is Lua 5.1: _G lives at LUA_GLOBALSINDEX, there is no
+  // lua_pushglobaltable.
   for (std::size_t i = 0; i < count; ++i) {
     lua_pushnil(L);
-    lua_setfield(L, -2, names[i]);
+    lua_setfield(L, LUA_GLOBALSINDEX, names[i]);
   }
+}
+
+void open_one_lib(lua_State* L, const char* name, lua_CFunction opener) {
+  // luaL_requiref does not exist in LuaJIT (Lua 5.1). Push the opener,
+  // call it with the module name, and register the returned table under
+  // that name in _G — the same contract, done by hand. Every call here is
+  // into first-party LuaJIT library code with fixed arguments, so an
+  // unprotected lua_call is safe in this loader-only path (E16.5 governs
+  // host->script calls; this is host->LuaJIT).
+  lua_pushcfunction(L, opener);
+  lua_pushstring(L, name);
+  lua_call(L, 1, 1);
+  lua_setfield(L, LUA_GLOBALSINDEX, name);
 }
 
 void open_curated_libs(lua_State* L) {
@@ -165,11 +182,16 @@ void open_curated_libs(lua_State* L) {
   // individually; io, os, package, debug, and the FFI/jit modules are never
   // registered in the first place, then scrubbed from _G by name as well in
   // case anything re-registered them.
-  luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 1);
-  luaL_requiref(L, LUA_TABLIBNAME, luaopen_table, 1);
-  luaL_requiref(L, LUA_MATHLIBNAME, luaopen_math, 1);
-  luaL_requiref(L, LUA_UTF8LIBNAME, luaopen_utf8, 1);
-  luaL_requiref(L, LUA_COROLIBNAME, luaopen_coroutine, 1);
+  //
+  // Platform note: LuaJIT has no utf8 library (that arrived with Lua 5.3),
+  // so the curated set here is base/string/table/math/coroutine. The
+  // absence is reported as a documented platform limitation in
+  // docs/lua-driver.md rather than silently relaxed — there is no degraded
+  // utf8 surface to offer.
+  open_one_lib(L, LUA_STRLIBNAME, luaopen_string);
+  open_one_lib(L, LUA_TABLIBNAME, luaopen_table);
+  open_one_lib(L, LUA_MATHLIBNAME, luaopen_math);
+  open_one_lib(L, LUA_COLIBNAME, luaopen_coroutine);
 
   // Base subset. luaopen_base registers the globals (_G, assert, error,
   // pairs, pcall, ...) plus the loaders we do not want. Scrub the escape
@@ -178,10 +200,8 @@ void open_curated_libs(lua_State* L) {
   lua_pushstring(L, "");
   lua_call(L, 1, 0);
 
-  lua_pushglobaltable(L);
   scrub_globals(L, kForbiddenGlobals,
                 sizeof(kForbiddenGlobals) / sizeof(*kForbiddenGlobals));
-  lua_pop(L, 1);
 
   // string.dump serializes a function to bytecode: remove it.
   lua_getglobal(L, "string");
