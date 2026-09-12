@@ -26,6 +26,8 @@ of four components:
   bounded local ring of recent events.
 - **protocol/** — JSON Schemas + examples that define the event, request,
   and native-message wire formats shared by all components.
+- **Lua drivers** -- We embed Lua and offer a Lua runtime module that are
+  used to "drive" the capture.
 
 ## Hard privacy guarantees
 
@@ -44,6 +46,11 @@ of four components:
   modification — ever.
 
 ## Building
+
+First, you'll need to clone submodules:
+```sh
+git submodule update --init --recursive
+```
 
 Requirements: CMake ≥ 3.24, a C++20 compiler, and the system libraries
 `libpcap`, `libbpf`, `libcap`, `libseccomp`, `spdlog`, `sqlite3`
