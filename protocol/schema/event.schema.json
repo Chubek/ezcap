@@ -1,0 +1,305 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ezcap.invalid/protocol/event.schema.json",
+  "title": "ezcap normalized event",
+  "description": "Schema for every event crossing a component boundary in ezcap. Events are metadata-only: payload content, credentials, cookies, and authorization headers are forbidden fields and must never be present.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "timestamp",
+    "source",
+    "confidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Event schema version. Breaking changes require a version increment."
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Unique event identifier (UUID or equivalent)."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "connection",
+        "dns",
+        "navigation",
+        "process",
+        "status",
+        "error"
+      ],
+      "description": "Event category."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40,
+      "description": "RFC 3339 timestamp, UTC."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["ebpf", "pcap", "browser"],
+      "description": "Backend or component that produced the observation."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Attribution confidence score. 0.00-0.39 weak, 0.40-0.69 probable, 0.70-0.89 strong, 0.90-1.00 direct or highly reliable."
+    },
+    "correlation_id": {
+      "type": ["string", "null"],
+      "maxLength": 64,
+      "description": "Identifier linking related events (for example a connection and its DNS resolution)."
+    },
+    "process": {
+      "$ref": "#/definitions/process"
+    },
+    "network": {
+      "$ref": "#/definitions/network"
+    },
+    "browser": {
+      "$ref": "#/definitions/browser"
+    },
+    "privacy": {
+      "$ref": "#/definitions/privacy"
+    },
+    "error": {
+      "$ref": "#/definitions/error"
+    },
+    "status": {
+      "$ref": "#/definitions/status"
+    }
+  },
+  "definitions": {
+    "process": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Originating process, when the operating system exposes it.",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Process executable name, never a full command line."
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295,
+          "description": "Owning user ID, when available and needed."
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transport"],
+      "properties": {
+        "transport": {
+          "type": "string",
+          "enum": ["tcp", "udp", "icmp", "other"]
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["inbound", "outbound", "unknown"]
+        },
+        "local_address": {
+          "type": "string",
+          "maxLength": 45,
+          "description": "IPv4 or IPv6 address."
+        },
+        "local_port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "remote_address": {
+          "type": "string",
+          "maxLength": 45
+        },
+        "remote_port": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "dns_query_name": {
+          "type": "string",
+          "maxLength": 253,
+          "description": "DNS query name, subject to redaction settings. Only for dns events."
+        },
+        "dns_response_code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15
+        },
+        "interface": {
+          "type": "string",
+          "maxLength": 16,
+          "description": "Interface identifier such as 'eth0'."
+        },
+        "backend": {
+          "type": "string",
+          "enum": ["ebpf", "pcap"],
+          "description": "Capture backend that observed the packet or socket."
+        }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Browser correlation data. Populated only when reliable browser-level evidence exists.",
+      "properties": {
+        "tab_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_id": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2048,
+          "description": "Redacted URL. Sensitive query strings and fragments must be removed before this field is populated."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "navigation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "navigation_id": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "frame_id": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Privacy annotations applied to this event.",
+      "properties": {
+        "redacted": {
+          "type": "boolean"
+        },
+        "redactions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "enum": [
+              "query-string",
+              "fragment",
+              "hostname-hash",
+              "hostname-mask",
+              "domain-excluded"
+            ]
+          }
+        },
+        "metadata_only": {
+          "type": "boolean",
+          "description": "Must be true. Events carrying payload data are invalid."
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Structured error details for error events.",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Stable machine-readable error code such as 'backend_unavailable'."
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Human-readable description without sensitive values."
+        },
+        "component": {
+          "type": "string",
+          "maxLength": 64,
+          "enum": ["capture", "ipc", "policy", "storage", "attribution", "daemon", "native_host"]
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Component status details for status events.",
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["starting", "running", "degraded", "stopping", "stopped"]
+        },
+        "backends": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "state"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": ["ebpf", "pcap"]
+              },
+              "state": {
+                "type": "string",
+                "enum": ["active", "unavailable", "degraded", "disabled"]
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "not": {
+    "anyOf": [
+      {
+        "required": ["payload"]
+      },
+      {
+        "required": ["body"]
+      },
+      {
+        "required": ["cookies"]
+      },
+      {
+        "required": ["authorization"]
+      },
+      {
+        "required": ["password"]
+      },
+      {
+        "required": ["api_key"]
+      }
+    ]
+  }
+}

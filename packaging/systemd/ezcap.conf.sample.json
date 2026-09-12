@@ -1,0 +1,25 @@
+{
+  "socket_path": "/run/ezcap/ezcap.sock",
+  "log_level": "info",
+  "prefer_ebpf": true,
+  "pcap_fallback": true,
+  "interfaces": [],
+  "pcap_filter": "tcp or udp or icmp",
+  "policy": {
+    "redaction_mode": "balanced",
+    "strip_query_string": true,
+    "strip_fragment": true,
+    "sensitive_domains": [
+      "accounts.google.com",
+      "login.microsoftonline.com",
+      "secure.authorize.net"
+    ]
+  },
+  "storage": {
+    "enabled": false,
+    "path": "/var/lib/ezcap/events.db",
+    "retention_seconds": 604800
+  },
+  "status_interval_ms": 30000,
+  "max_events_per_second": 500
+}

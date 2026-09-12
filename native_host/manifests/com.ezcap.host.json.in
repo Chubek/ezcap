@@ -1,0 +1,9 @@
+{
+  "name": "com.ezcap.host",
+  "description": "ezcap Native Messaging host (local browser observability, metadata-only)",
+  "path": "@CMAKE_INSTALL_FULL_BINDIR@/ezcap-native-host",
+  "type": "stdio",
+  "allowed_extensions": [
+    "@EZCAP_EXTENSION_ID_FIREFOX@"
+  ]
+}

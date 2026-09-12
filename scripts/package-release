@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Assemble a release tarball: daemons + extension bundles + schemas + docs.
+#
+# Usage: scripts/package-release <version> [output-dir]
+#        (version like 0.1.0; output dir defaults to dist/)
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION="${1:-}"
+OUT_DIR="${2:-${REPO_ROOT}/dist}"
+
+die() { echo "package-release: $*" >&2; exit 1; }
+
+[ -n "${VERSION}" ] || die "usage: scripts/package-release <version> [output-dir]"
+[ -d "${REPO_ROOT}/build" ] || die "no build/ directory — run cmake --preset default && cmake --build --preset default first"
+
+PKG="${OUT_DIR}/ezcap-${VERSION}"
+rm -rf "${PKG}"
+mkdir -p "${PKG}/bin" "${PKG}/share"
+
+# --- binaries ----------------------------------------------------------------
+cp "${REPO_ROOT}/build/ezcap-daemon" "${PKG}/bin/"
+cp "${REPO_ROOT}/build/ezcap-native-host" "${PKG}/bin/"
+
+# --- eBPF object (when built) ------------------------------------------------
+if [ -f "${REPO_ROOT}/build/ezcap.bpf.o" ]; then
+  mkdir -p "${PKG}/lib/ezcap"
+  cp "${REPO_ROOT}/build/ezcap.bpf.o" "${PKG}/lib/ezcap/"
+else
+  echo "note: no eBPF object in build/ — packaging pcap-only release"
+fi
+
+# --- extension bundles -------------------------------------------------------
+for browser in chromium firefox; do
+  if [ -d "${REPO_ROOT}/extension/dist/${browser}" ]; then
+    mkdir -p "${PKG}/share/extension"
+    cp -r "${REPO_ROOT}/extension/dist/${browser}" "${PKG}/share/extension/"
+  else
+    die "extension/dist/${browser} missing — run: (cd extension && npm run build)"
+  fi
+done
+
+# --- schemas, docs, packaging ------------------------------------------------
+cp -r "${REPO_ROOT}/protocol" "${PKG}/share/"
+cp -r "${REPO_ROOT}/docs" "${PKG}/share/"
+cp -r "${REPO_ROOT}/packaging" "${PKG}/share/"
+
+cat > "${PKG}/VERSION" <<EOF
+ezcap ${VERSION}
+metadata-only browser network observability
+EOF
+
+tar -C "${OUT_DIR}" -czf "${OUT_DIR}/ezcap-${VERSION}.tar.gz "ezcap-${VERSION}" 2>/dev/null || \
+  tar -C "${OUT_DIR}" -czf "${OUT_DIR}/ezcap-${VERSION}.tar.gz" "ezcap-${VERSION}"
+
+echo "==> ${OUT_DIR}/ezcap-${VERSION}.tar.gz"

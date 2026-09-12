@@ -1,0 +1,19 @@
+{
+  "name": "ezcap-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ezcap browser extension (Chromium and Firefox builds) — local, metadata-only browser network observability.",
+  "type": "module",
+  "scripts": {
+    "build:chromium": "tsc -p tsconfig.json --noEmit false && node build.mjs chromium",
+    "build:firefox": "tsc -p tsconfig.json --noEmit false && node build.mjs firefox",
+    "build": "npm run build:chromium && npm run build:firefox",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

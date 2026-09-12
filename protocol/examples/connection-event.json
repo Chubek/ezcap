@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "event_id": "018f3a2b-7c1d-4e5f-9a2b-3c4d5e6f7a8b",
+  "event_type": "connection",
+  "timestamp": "2026-09-12T07:41:03.512Z",
+  "source": "ebpf",
+  "confidence": 0.92,
+  "correlation_id": "018f3a2b-90ab-4c21-b01d-1e2f3a4b5c6d",
+  "process": {
+    "pid": 4821,
+    "name": "firefox",
+    "uid": 1000
+  },
+  "network": {
+    "transport": "tcp",
+    "direction": "outbound",
+    "local_address": "192.168.1.24",
+    "local_port": 51432,
+    "remote_address": "93.184.216.34",
+    "remote_port": 443,
+    "interface": "eth0",
+    "backend": "ebpf"
+  },
+  "browser": {
+    "tab_id": 3,
+    "window_id": 1,
+    "url": "https://example.org/"
+  },
+  "privacy": {
+    "redacted": true,
+    "redactions": ["query-string", "fragment"],
+    "metadata_only": true
+  }
+}

@@ -1,0 +1,36 @@
+[Unit]
+Description=ezcap browser network observability daemon (metadata-only)
+Documentation=man:ezcap-daemon(8)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ezcap-daemon --config /etc/ezcap/ezcap.conf.json
+Restart=on-failure
+RestartSec=2
+
+# The daemon opens its eBPF/pcap capture during startup and drops all
+# capabilities immediately after; keep AmbientCapabilities to the minimum
+# the backends need (bpf + net_raw for capture, net_admin is NOT needed).
+AmbientCapabilities=CAP_BPF CAP_NET_RAW CAP_PERFMON
+CapabilityBoundingSet=CAP_BPF CAP_NET_RAW CAP_PERFMON
+
+# Hardening.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_PACKET
+MemoryDenyWriteExecute=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+
+# Runtime dir for the socket (ezcap.sock).
+RuntimeDirectory=ezcap
+RuntimeDirectoryMode=0750
+
+[Install]
+WantedBy=multi-user.target

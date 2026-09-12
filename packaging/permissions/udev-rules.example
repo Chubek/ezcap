@@ -1,0 +1,22 @@
+# udev rules example for ezcap raw-capture permissions
+#
+# The preferred setup runs ezcap-daemon as a systemd service with
+# AmbientCapabilities=CAP_BPF CAP_NET_RAW CAP_PERFMON (see
+# packaging/systemd/ezcap.service). This file documents the alternative
+# for hosts where capabilities are managed via udev — e.g. running the
+# daemon as a dedicated user that must open a packet socket.
+#
+# Install to /etc/udev/rules.d/99-ezcap.rules and reload with:
+#   udevadm control --reload && udevadm trigger
+#
+# Grant the packet socket capability to the dedicated ezcap user for
+# network interface capture. Adjust INTERFACE or the GROUP to match the
+# deployment.
+#
+# SUBSYSTEM=="net", ACTION=="add", KERNEL=="eth0", \\
+#   RUN+="/sbin/setcap cap_net_raw+ep /usr/bin/ezcap-daemon"
+#
+# NOTE: setcap grants the *binary* the capability for every invocation.
+# Prefer the systemd AmbientCapabilities route when available — it scopes
+# the privilege to the service unit only. This example is provided for
+# completeness on systems without that option.

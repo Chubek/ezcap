@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ezcap.invalid/protocol/daemon_request.schema.json",
+  "title": "ezcap daemon IPC request",
+  "description": "Schema for requests sent to the ezcap daemon over its Unix-domain socket. Operations are an explicit allowlist; there is deliberately no generic execute/run/eval operation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_version", "operation", "request_id"],
+  "properties": {
+    "protocol_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "IPC protocol version. Unsupported versions are rejected with error code 'unsupported_version'."
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "get_status",
+        "subscribe",
+        "unsubscribe",
+        "set_policy",
+        "get_policy",
+        "shutdown"
+      ],
+      "description": "Requested operation. 'shutdown' requires additional authorization."
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 8,
+      "properties": {
+        "event_types": {
+          "type": "array",
+          "description": "Event types to subscribe to. Only valid for subscribe operations.",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "enum": [
+              "connection",
+              "dns",
+              "navigation",
+              "process",
+              "status",
+              "error"
+            ]
+          }
+        },
+        "subscription_id": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Subscription identifier to remove. Only valid for unsubscribe operations."
+        },
+        "policy": {
+          "type": "object",
+          "description": "Updated policy document. Only valid for set_policy operations.",
+          "additionalProperties": false,
+          "maxProperties": 8,
+          "properties": {
+            "metadata_only": {
+              "type": "boolean",
+              "description": "Must remain true; requests that attempt to disable metadata-only mode are rejected."
+            },
+            "redaction": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 8,
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": ["hostname-only", "query-string-removal", "full-hostname", "domain-hash", "domain-mask"]
+                },
+                "sensitive_domains": {
+                  "type": "array",
+                  "maxItems": 256,
+                  "items": {
+                    "type": "string",
+                    "maxLength": 253
+                  }
+                }
+              }
+            },
+            "persistence": {
+              "type": "object",
+              "additionalProperties": false,
+              "maxProperties": 4,
+              "properties": {
+                "enabled": {
+                  "type": "boolean",
+                  "description": "Local persistence is disabled by default and must be explicitly enabled."
+                },
+                "retention_seconds": {
+                  "type": "integer",
+                  "minimum": 60,
+                  "maximum": 31536000
+                }
+              }
+            }
+          }
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Optional human-readable reason, for example for shutdown requests."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "ezcap",
+  "version": "0.1.0",
+  "description": "Local browser network observability (metadata-only). Correlates network events with browser activity via a local daemon.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ezcap@ezcap.invalid",
+      "strict_min_version": "115.0"
+    }
+  },
+  "permissions": [
+    "nativeMessaging",
+    "storage",
+    "tabs"
+  ],
+  "background": {
+    "scripts": ["src/background.js"],
+    "type": "module"
+  },
+  "action": {
+    "default_title": "ezcap",
+    "default_popup": "src/popup.html"
+  },
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "16": "../shared/icons/icon-16.png",
+    "48": "../shared/icons/icon-48.png",
+    "128": "../shared/icons/icon-128.png"
+  }
+}

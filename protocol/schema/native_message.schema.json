@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ezcap.invalid/protocol/native_message.schema.json",
+  "title": "ezcap native messaging envelope",
+  "description": "Schema for the JSON documents exchanged between the browser extension and the Native Messaging host, framed with the standard 4-byte little-endian length prefix (maximum 1 MiB per message as enforced by browsers). The host validates framing, size, and structure before forwarding anything to the daemon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_version", "kind", "payload"],
+  "properties": {
+    "protocol_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "request",
+        "response",
+        "event",
+        "error"
+      ],
+      "description": "Message kind. Only 'request' messages are forwarded to the daemon; the rest flow back to the extension."
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/request"
+        },
+        {
+          "$ref": "#/definitions/response"
+        },
+        {
+          "$ref": "event.schema.json"
+        },
+        {
+          "$ref": "#/definitions/error"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "request_id"],
+      "properties": {
+        "operation": {
+          "type": "string",
+          "enum": [
+            "hello",
+            "get_status",
+            "subscribe",
+            "unsubscribe",
+            "set_policy",
+            "get_policy"
+          ],
+          "description": "Allowed daemon operations as seen from the extension. 'shutdown' is deliberately not forwardable from the browser."
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "params": {
+          "type": "object",
+          "maxProperties": 8
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_id", "ok"],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "result": {
+          "type": "object",
+          "maxProperties": 16
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "request_id": {
+          "type": ["string", "null"],
+          "maxLength": 64
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_framing",
+            "message_too_large",
+            "invalid_json",
+            "schema_violation",
+            "unsupported_version",
+            "unknown_operation",
+            "operation_not_allowed",
+            "daemon_unavailable",
+            "daemon_error",
+            "internal_error"
+          ],
+          "description": "Stable error code returned by the native host."
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    }
+  }
+}
