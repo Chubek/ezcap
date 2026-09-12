@@ -8,15 +8,15 @@
 
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#include <bpf/bpf_core_read.h>
+
+#include "ebpf_common.h"
 
 #include "ebpf_events.h"
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
 
-struct {
-    __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, EZCAP_RINGBUF_PAGES * 4096);
-} events SEC(".maps");
+ebpf_events_ringbuf_map_t events SEC(".maps");
 
 static __always_inline void fill_header(struct ezcap_event_header *hdr, __u8 tag)
 {
@@ -29,18 +29,6 @@ static __always_inline void fill_header(struct ezcap_event_header *hdr, __u8 tag
     hdr->pid = pid_tgid >> 32;
     hdr->uid = (__u32)uid_gid;
     hdr->timestamp_ns = bpf_ktime_get_ns();
-}
-
-static __always_inline void copy_ifname(struct ezcap_connect_event *ev,
-                                        const char (*ifname)[16])
-{
-    /* Interface name is short (<= IFNAMSIZ-1 = 15 chars); a bounded loop
-     * the verifier can reason about. */
-    for (int i = 0; i < EZCAP_IFNAME_MAX; i++) {
-        ev->ifname[i] = (*ifname)[i];
-        if (ev->ifname[i] == '\0')
-            break;
-    }
 }
 
 SEC("kprobe/tcp_v4_connect")

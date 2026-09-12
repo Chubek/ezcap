@@ -98,7 +98,7 @@ docker run --rm --user 1001:1001 --cap-add CAP_NET_RAW \
   ezcap:local
 ```
 
-For eBPF-capable hosts, enable eBPF at build time:
+To force a pcap-only container image, disable eBPF explicitly:
 
 ```sh
 docker build --build-arg BUILD_WITH_EBPF=ON -t ezcap:local-ebpf .

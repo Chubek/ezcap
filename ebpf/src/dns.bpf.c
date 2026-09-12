@@ -9,14 +9,16 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
 
+#include "ebpf_common.h"
 #include "ebpf_events.h"
 
-char LICENSE[] SEC("license") = "Dual BSD/GPL";
+#ifndef ETH_P_IP
+#define ETH_P_IP 0x0800
+#endif
 
-struct {
-    __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, EZCAP_RINGBUF_PAGES * 4096);
-} events SEC(".maps");
+#ifndef ETH_P_IPV6
+#define ETH_P_IPV6 0x86DD
+#endif
 
 /* DNS header (RFC 1035 section 4.1.1), 12 bytes. */
 struct dns_header {

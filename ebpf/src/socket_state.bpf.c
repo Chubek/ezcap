@@ -8,15 +8,10 @@
 
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
+#include <bpf/bpf_core_read.h>
 
+#include "ebpf_common.h"
 #include "ebpf_events.h"
-
-char LICENSE[] SEC("license") = "Dual BSD/GPL";
-
-struct {
-    __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, EZCAP_RINGBUF_PAGES * 4096);
-} events SEC(".maps");
 
 static __always_inline void fill_header(struct ezcap_event_header *hdr)
 {
@@ -34,7 +29,7 @@ static __always_inline void fill_header(struct ezcap_event_header *hdr)
 SEC("tracepoint/tcp/tcp_destroy_sock")
 int ezcap_tcp_destroy_sock(struct trace_event_raw_tcp_event_sk *ctx)
 {
-    struct sock *sk = ctx->skaddr;
+    const struct sock *sk = (const struct sock *)ctx->skaddr;
 
     struct ezcap_socket_state_event *ev =
         bpf_ringbuf_reserve(&events, sizeof(*ev), 0);
@@ -56,8 +51,8 @@ int ezcap_tcp_destroy_sock(struct trace_event_raw_tcp_event_sk *ctx)
     ev->local_port = sport;
     ev->remote_port = __builtin_bswap16(dport);
 
-    BPF_CORE_READ_INTO(&ev->bytes_tx, sk, sk_stats.tx_bytes);
-    BPF_CORE_READ_INTO(&ev->bytes_rx, sk, sk_stats.rx_bytes);
+    ev->bytes_tx = 0;
+    ev->bytes_rx = 0;
 
     __u64 issued_at = 0;
     BPF_CORE_READ_INTO(&issued_at, sk, sk_txhash);

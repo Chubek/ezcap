@@ -3,6 +3,8 @@
 // C-compatible eBPF event structures shared with the kernel-side programs.
 // This header simply re-exports the canonical definitions from ebpf/include
 // so daemon sources can include it without C-only flags.
+#include <linux/types.h>
+
 #include "ebpf_events.h"
 
 #include <ezcap/event.hpp>

@@ -12,8 +12,6 @@
 
 #include "ebpf_config.h"
 
-#include <linux/types.h>
-
 /* Common event header. `tag` selects the payload union interpretation. */
 struct ezcap_event_header {
     __u8 version;   /* EZCAP_EVENT_VERSION */
