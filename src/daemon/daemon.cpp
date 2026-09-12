@@ -12,8 +12,11 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 
+#include <algorithm>
+#include <cstdlib>
 #include <chrono>
 #include <string>
+#include <vector>
 #include <thread>
 
 namespace ezcap::daemon {
@@ -29,31 +32,46 @@ Daemon::Daemon(Config config) : config_{std::move(config)} {}
 Daemon::~Daemon() { stop(); }
 
 std::string Daemon::default_interface() const {
-  // First up interface with an address (prefer non-loopback).
+  // Select first usable interface, preferring non-loopback and UP state.
   struct ifaddrs* ifas = nullptr;
   if (::getifaddrs(&ifas) != 0) {
     return {};
   }
-  std::string name;
-  std::string loopback_name;
+  std::string non_loopback_up;
+  std::string non_loopback_any;
+  std::string loopback_up;
+  std::string loopback_any;
   for (struct ifaddrs* ifa = ifas; ifa != nullptr; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == nullptr || ifa->ifa_name == nullptr) continue;
-    if (!(ifa->ifa_flags & IFF_UP)) continue;
+    if (ifa->ifa_name == nullptr) continue;
+    const bool up = (ifa->ifa_flags & IFF_UP) != 0;
     if ((ifa->ifa_flags & IFF_LOOPBACK) != 0) {
-      if (loopback_name.empty()) {
-        loopback_name = ifa->ifa_name;
+      if (loopback_up.empty() && up) {
+        loopback_up = ifa->ifa_name;
+      }
+      if (loopback_any.empty()) {
+        loopback_any = ifa->ifa_name;
       }
       continue;
     }
-    if (ifa->ifa_addr->sa_family != AF_INET &&
-        ifa->ifa_addr->sa_family != AF_INET6) {
-      continue;
+    const std::string name{ifa->ifa_name};
+    if (non_loopback_up.empty() && up) {
+      non_loopback_up = name;
     }
-    name = ifa->ifa_name;
-    break;
+    if (non_loopback_any.empty()) {
+      non_loopback_any = name;
+    }
   }
   ::freeifaddrs(ifas);
-  return name.empty() ? loopback_name : name;
+  if (!non_loopback_up.empty()) {
+    return non_loopback_up;
+  }
+  if (!non_loopback_any.empty()) {
+    return non_loopback_any;
+  }
+  if (!loopback_up.empty()) {
+    return loopback_up;
+  }
+  return loopback_any;
 }
 
 bool Daemon::start(std::string& error) {
@@ -91,23 +109,73 @@ bool Daemon::start(std::string& error) {
   }
 
   if (!have_backend && config_.pcap_fallback) {
-    std::string iface = default_interface();
-    if (iface.empty() && !config_.interfaces.empty()) {
-      iface = config_.interfaces.front();
+    const auto trim = [](const std::string& value) -> std::string {
+      const auto begin = value.find_first_not_of(" \t\r\n");
+      if (begin == std::string::npos) {
+        return {};
+      }
+      const auto end = value.find_last_not_of(" \t\r\n");
+      return value.substr(begin, end - begin + 1);
+    };
+
+    std::vector<std::string> candidate_interfaces;
+    const auto add_candidate = [&candidate_interfaces](const std::string& iface) {
+      if (iface.empty()) {
+        return;
+      }
+      if (std::find(candidate_interfaces.begin(), candidate_interfaces.end(), iface) !=
+          candidate_interfaces.end()) {
+        return;
+      }
+      candidate_interfaces.push_back(iface);
+    };
+
+    if (const char* env_iface = std::getenv("EZCAP_INTERFACE")) {
+      const std::string iface = trim(std::string{env_iface});
+      if (!iface.empty() && iface.size() < IFNAMSIZ) {
+        add_candidate(iface);
+      } else if (iface.size() >= IFNAMSIZ) {
+        EZCAP_LOG_WARN("ignoring invalid EZCAP_INTERFACE value (name too long)");
+      }
     }
-    if (iface.empty()) {
+
+    if (!config_.interfaces.empty()) {
+      add_candidate(config_.interfaces.front());
+    }
+    add_candidate(default_interface());
+    add_candidate("any");
+
+    if (candidate_interfaces.empty()) {
       error = "no capture interface available";
       return false;
     }
-    auto pcap = std::make_unique<capture::PcapCaptureBackend>(
-        iface, config_.pcap_filter,
-        [this](const ezcap::Event& event) { on_capture_event(event); });
-    if (!pcap->start(backend_error)) {
-      error = "pcap backend failed: " + backend_error;
+
+    bool pcap_started = false;
+    for (const auto& iface : candidate_interfaces) {
+      auto pcap = std::make_unique<capture::PcapCaptureBackend>(
+          iface, config_.pcap_filter,
+          [this](const ezcap::Event& event) { on_capture_event(event); });
+      if (pcap->start(backend_error)) {
+        backend_ = std::move(pcap);
+        have_backend = true;
+        pcap_started = true;
+        if (iface == candidate_interfaces.front()) {
+          EZCAP_LOG_INFO("pcap capture started on interface: " + iface);
+        } else {
+          EZCAP_LOG_INFO("pcap capture started on fallback interface: " +
+                         iface);
+        }
+        break;
+      }
+      EZCAP_LOG_WARN("pcap backend unavailable on interface " + iface + ": " +
+                     backend_error);
+    }
+    if (!pcap_started) {
+      error = "pcap backend failed on all candidate interfaces: " +
+              backend_error;
       return false;
     }
-    backend_ = std::move(pcap);
-    have_backend = true;
+
     if (!degraded_reason.empty()) {
       EZCAP_LOG_WARN("running degraded (pcap): process attribution is "
                      "limited without eBPF");
