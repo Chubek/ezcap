@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ezcap.local/protocol/drivers/endpoint.schema.json",
+  "title": "ezcap endpoint descriptor",
+  "description": "Structured description of an observable surface produced by a driver or first-party code. Validated before reaching the specgen subsystem.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "namespace", "version", "kind", "summary", "metadata_only"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+    },
+    "namespace": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]{1,64}$",
+      "description": "Owning driver name or first-party namespace."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+    },
+    "kind": {
+      "enum": ["operation", "stream", "event"]
+    },
+    "summary": { "type": "string", "maxLength": 256 },
+    "description": { "type": "string", "maxLength": 2048 },
+    "request": { "$ref": "#/$defs/schemaSubset" },
+    "response": { "$ref": "#/$defs/schemaSubset" },
+    "metadata_only": {
+      "type": "boolean",
+      "const": true,
+      "description": "Must be true for any endpoint that could carry observed data. Descriptors with metadata_only=false are rejected unless the endpoint is purely synthetic (documentation markers), which the daemon never produces from observed data."
+    },
+    "attribution": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 512 },
+      "description": "Attribution policy notes carried into generated specs."
+    },
+    "confidence": {
+      "type": "string",
+      "maxLength": 256,
+      "description": "Confidence semantics for stream/event endpoints, e.g. 'correlated: 0.40-0.69 probable'."
+    },
+    "privacy": {
+      "type": "array",
+      "items": { "type": "string", "maxLength": 512 },
+      "description": "Field-level annotations identifying data subject to redaction."
+    }
+  },
+  "$defs": {
+    "schemaSubset": {
+      "description": "JSON Schema subset accepted for request/response shapes. Intentionally narrow: no $ref, no external URIs, bounded depth and size.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["object", "array", "string", "number", "integer", "boolean", "null"]
+        },
+        "description": { "type": "string", "maxLength": 512 },
+        "properties": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-zA-Z0-9_]{1,64}$" },
+          "additionalProperties": { "$ref": "#/$defs/schemaSubset" },
+          "maxProperties": 64
+        },
+        "items": { "$ref": "#/$defs/schemaSubset" },
+        "required": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 64 },
+          "maxItems": 64
+        },
+        "enum": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "type": ["string", "number", "boolean", "null"] }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ezcap.local/protocol/drivers/manifest.schema.json",
+  "title": "ezcap Lua driver manifest",
+  "description": "Declarative manifest describing a sandboxed Lua driver script. Validated before any script is loaded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "version", "script"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9-]{1,64}$",
+      "description": "Unique driver identifier."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+      "description": "Numeric version, x.y[.z]."
+    },
+    "script": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "description": "Path of the script, relative to the manifest or allowlisted directory."
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 512
+    },
+    "script_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Optional integrity pin over the script source text."
+    },
+    "capabilities": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "events",
+          "capture",
+          "dns",
+          "process",
+          "policy",
+          "endpoint",
+          "spec",
+          "log",
+          "util",
+          "status"
+        ]
+      },
+      "description": "Capabilities negotiated at load time. Enforced at binding-registration time; anything not declared here is absent from the script's lezcap table."
+    },
+    "event_types": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "type": "string", "maxLength": 32 },
+      "description": "Normalized event categories the driver subscribes to. Subscriptions are reductions over the existing pipeline, never expansions."
+    },
+    "max_endpoints": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64,
+      "description": "Self-imposed ceiling on declared endpoints; may only lower the engine default."
+    },
+    "max_subscriptions": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
+    }
+  }
+}
