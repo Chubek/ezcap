@@ -18,6 +18,16 @@ namespace {
 /// Apply a capability set as both permitted and effective, then drop the
 /// ambient set entirely.
 bool apply_caps(cap_t caps, std::string& error) noexcept {
+  // Lock securebits BEFORE dropping capabilities: PR_SET_SECUREBITS requires
+  // CAP_SETPCAP, which cap_set_proc() below removes. EPERM means the caller
+  // never had CAP_SETPCAP (e.g. a restricted systemd bounding set); the
+  // unit's NoNewPrivileges= provides the same no-setuid-regain guarantee,
+  // so continue instead of failing. EINVAL is for kernels without securebits.
+  if (::prctl(PR_SET_SECUREBITS, SECBIT_NOROOT | SECBIT_NOROOT_LOCKED) != 0 &&
+      errno != EINVAL && errno != EPERM) {
+    error = "prctl securebits failed";
+    return false;
+  }
   if (::cap_set_proc(caps) != 0) {
     error = "cap_set_proc failed";
     return false;
@@ -28,12 +38,6 @@ bool apply_caps(cap_t caps, std::string& error) noexcept {
       errno != EINVAL) {
     // EINVAL on kernels without ambient caps: acceptable.
     error = "prctl ambient clear failed";
-    return false;
-  }
-  // Lock further capability changes: no setuid regaining.
-  if (::prctl(PR_SET_SECUREBITS, SECBIT_NOROOT | SECBIT_NOROOT_LOCKED) != 0 &&
-      errno != EINVAL) {
-    error = "prctl securebits failed";
     return false;
   }
   return true;
