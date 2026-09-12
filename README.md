@@ -81,6 +81,32 @@ differ.
    `packaging/systemd/ezcap.service`), or run `ezcap-daemon` directly with
    `--config`.
 
+### Docker
+
+Build:
+
+```sh
+docker build -t ezcap:local .
+```
+
+Run the daemon in a container (pcap-only default build):
+
+```sh
+docker run --rm --user 1001:1001 --cap-add CAP_NET_RAW \
+  --mount type=tmpfs,destination=/run/ezcap \
+  --mount type=volume,src=ezcap-data,target=/var/lib/ezcap \
+  ezcap:local
+```
+
+For eBPF-capable hosts, enable eBPF at build time:
+
+```sh
+docker build --build-arg BUILD_WITH_EBPF=ON -t ezcap:local-ebpf .
+```
+
+> eBPF still requires kernel + container capability support; if unavailable,
+> the daemon falls back to `pcap`.
+
 ## Status
 
 Work in progress. The eBPF backend requires `bpftool`, `clang` with the

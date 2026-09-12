@@ -66,8 +66,10 @@ packet data — by allowlist, not by blacklist.
   the event structs carry and never inspect packet payload bytes.
 - Events cross via a BPF ring buffer as versioned compact structs; a
   version mismatch is rejected by user space, never misparsed.
-- The object is loaded from a fixed, compiled-in path — never from a
-  user-configurable location.
+- The object is loaded from a fixed, compiled-in path by default and then
+  verified against known adjacent install/build locations (`lib`, `lib64`,
+  `ebpf`) to tolerate layout differences. User input cannot override the
+  lookup path.
 
 ## Build-time honesty
 

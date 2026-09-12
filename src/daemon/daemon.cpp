@@ -29,16 +29,22 @@ Daemon::Daemon(Config config) : config_{std::move(config)} {}
 Daemon::~Daemon() { stop(); }
 
 std::string Daemon::default_interface() const {
-  // First non-loopback, up interface with an address.
+  // First up interface with an address (prefer non-loopback).
   struct ifaddrs* ifas = nullptr;
   if (::getifaddrs(&ifas) != 0) {
     return {};
   }
   std::string name;
+  std::string loopback_name;
   for (struct ifaddrs* ifa = ifas; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_addr == nullptr || ifa->ifa_name == nullptr) continue;
-    if (ifa->ifa_flags & IFF_LOOPBACK) continue;
     if (!(ifa->ifa_flags & IFF_UP)) continue;
+    if ((ifa->ifa_flags & IFF_LOOPBACK) != 0) {
+      if (loopback_name.empty()) {
+        loopback_name = ifa->ifa_name;
+      }
+      continue;
+    }
     if (ifa->ifa_addr->sa_family != AF_INET &&
         ifa->ifa_addr->sa_family != AF_INET6) {
       continue;
@@ -47,7 +53,7 @@ std::string Daemon::default_interface() const {
     break;
   }
   ::freeifaddrs(ifas);
-  return name;
+  return name.empty() ? loopback_name : name;
 }
 
 bool Daemon::start(std::string& error) {

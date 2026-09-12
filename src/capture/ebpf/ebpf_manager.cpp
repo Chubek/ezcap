@@ -5,12 +5,15 @@
 
 #include <bpf/libbpf.h>
 
+#include <array>
 #include <cstdlib>
 #include <chrono>
 #include <cstring>
 #include <fcntl.h>
+#include <filesystem>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <vector>
 
 namespace ezcap::capture {
 
@@ -37,6 +40,53 @@ std::chrono::system_clock::time_point boot_walltime() noexcept {
     }
   }
   return boot;
+}
+
+std::string read_executable_dir() noexcept {
+  std::array<char, 512> buf{};
+  const ssize_t count = ::readlink("/proc/self/exe", buf.data(), buf.size() - 1);
+  if (count <= 0) {
+    return {};
+  }
+  const auto nul = static_cast<std::size_t>(count);
+  buf[nul] = '\0';
+  const std::filesystem::path exe_path{buf.data()};
+  if (exe_path.empty()) {
+    return {};
+  }
+  return exe_path.parent_path().string();
+}
+
+/// Build a stable candidate list and return the first readable object path.
+std::string find_existing_ebpf_object(
+    std::string_view configured_object_path) {
+  std::vector<std::filesystem::path> candidates;
+
+  if (!configured_object_path.empty()) {
+    candidates.emplace_back(configured_object_path);
+  }
+
+  const std::string exe_dir = read_executable_dir();
+  if (!exe_dir.empty()) {
+    const std::filesystem::path base{exe_dir};
+    candidates.emplace_back(base / "ezcap.bpf.o");
+    candidates.emplace_back(base / "lib" / "ezcap" / "ezcap.bpf.o");
+    candidates.emplace_back(base / "lib64" / "ezcap" / "ezcap.bpf.o");
+    candidates.emplace_back(base / "ebpf" / "ezcap.bpf.o");
+    candidates.emplace_back(base / "ebpf" / "generated" / "ezcap.bpf.o");
+    candidates.emplace_back(base / ".." / "lib" / "ezcap" / "ezcap.bpf.o");
+    candidates.emplace_back(base / ".." / "lib64" / "ezcap" / "ezcap.bpf.o");
+  }
+
+  for (const auto& candidate : candidates) {
+    std::error_code ec;
+    if (std::filesystem::exists(candidate, ec) &&
+        std::filesystem::is_regular_file(candidate, ec) && !ec) {
+      return candidate.string();
+    }
+  }
+
+  return {};
 }
 
 }  // namespace
@@ -72,14 +122,26 @@ bool EbpfCaptureBackend::start(std::string& error) {
     return false;
   }
 
-  // Programs are built by scripts/build-ebpf.sh into ebpf/generated/.
-  // The path is fixed; never user-configurable, to avoid loading
-  // arbitrary objects.
-  const char* object_path = EZCAP_EBPF_OBJECT_PATH;
-  impl_->object = bpf_object__open_file(object_path, nullptr);
-  if (impl_->object == nullptr) {
-    error = "eBPF object not found (built only when supported)";
+  const std::string object_path = resolve_object_path();
+  if (object_path.empty()) {
+    error = "eBPF object not found in known locations";
     EZCAP_LOG_INFO("ebpf backend unavailable: object missing");
+    return false;
+  }
+
+  impl_->object = bpf_object__open_file(object_path.c_str(), nullptr);
+  if (impl_->object == nullptr) {
+    error = "eBPF object could not be opened at " + object_path;
+    EZCAP_LOG_INFO("ebpf backend unavailable: object open failed");
+    return false;
+  }
+  if (const long open_errno = libbpf_get_error(impl_->object); open_errno != 0) {
+    error = "eBPF object could not be opened ("
+            + object_path + "): " +
+            std::to_string(-open_errno);
+    EZCAP_LOG_INFO("ebpf backend unavailable: object open failed");
+    bpf_object__close(impl_->object);
+    impl_->object = nullptr;
     return false;
   }
 
@@ -163,6 +225,10 @@ bool EbpfCaptureBackend::start(std::string& error) {
   thread_ = std::make_unique<std::thread>(&EbpfCaptureBackend::poll_loop, this);
   EZCAP_LOG_INFO("ebpf backend started");
   return true;
+}
+
+std::string EbpfCaptureBackend::resolve_object_path() noexcept {
+  return find_existing_ebpf_object(EZCAP_EBPF_OBJECT_PATH);
 }
 
 void EbpfCaptureBackend::stop() noexcept {

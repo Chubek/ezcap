@@ -9,10 +9,12 @@ toolchain is available, with pcap as the universal fallback.
 
 At startup the daemon tries backends in order:
 
-1. **eBPF** — only when the build produced `ezcap.bpf.o` (see below) and
-   the object exists at the compiled-in fixed path
-   (`EZCAP_EBPF_OBJECT_PATH`). Privileges permitting, this is the richest
-   source.
+1. **eBPF** — only when the build produced `ezcap.bpf.o` (see below).
+   The daemon checks `EZCAP_EBPF_OBJECT_PATH` first, then a few known
+   install/build locations (`../lib`, `../lib64`, `../ebpf`) before giving
+   up. This keeps users safe from arbitrary-path loading while staying
+   resilient to package/install layout differences. Privileges permitting, this
+   is the richest source.
 2. **libpcap** — a live capture on the default (or configured) interface,
    using a compiled BPF filter that admits only TCP/UDP/ICMP/DNS packet
    headers. Never a payload source.

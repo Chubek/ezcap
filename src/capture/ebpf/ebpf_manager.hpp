@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <string_view>
 
 namespace ezcap::capture {
 
@@ -35,6 +36,11 @@ class EbpfCaptureBackend final : public CaptureBackend {
   /// (kernel BTF present). Used for status reporting before attempting a
   /// privileged load.
   [[nodiscard]] static bool host_supported(std::string& reason) noexcept;
+
+  /// Resolve the eBPF object file to load.
+  /// Keeps the compiled-in path as the primary choice and searches known
+  /// fallback locations for installed/build-tree deployments.
+  [[nodiscard]] static std::string resolve_object_path() noexcept;
 
  private:
   void poll_loop();
