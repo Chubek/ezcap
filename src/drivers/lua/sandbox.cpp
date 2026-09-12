@@ -191,11 +191,12 @@ void open_curated_libs(lua_State* L) {
   open_one_lib(L, LUA_STRLIBNAME, luaopen_string);
   open_one_lib(L, LUA_TABLIBNAME, luaopen_table);
   open_one_lib(L, LUA_MATHLIBNAME, luaopen_math);
-  open_one_lib(L, LUA_COLIBNAME, luaopen_coroutine);
 
   // Base subset. luaopen_base registers the globals (_G, assert, error,
-  // pairs, pcall, ...) plus the loaders we do not want. Scrub the escape
-  // hatches from _G immediately afterwards.
+  // pairs, pcall, coroutine, ...) plus the loaders we do not want. LuaJIT is
+  // Lua 5.1: coroutine is part of the base library, so there is no separate
+  // luaopen_coroutine to open. Scrub the escape hatches from _G immediately
+  // afterwards.
   lua_pushcfunction(L, luaopen_base);
   lua_pushstring(L, "");
   lua_call(L, 1, 0);
@@ -304,8 +305,10 @@ SandboxOutcome Sandbox::pcall(std::int32_t nargs, std::int32_t nresults,
 
 bool Sandbox::call_global(const char* name, std::int32_t nresults,
                           SandboxError& error) {
-  const int type = lua_getglobal(lua_state_, name);
-  if (type != LUA_TFUNCTION) {
+  // LuaJIT's lua_getfield (and therefore the lua_getglobal macro) returns
+  // void, unlike PUC Lua 5.1; inspect the stack instead of the call result.
+  lua_getglobal(lua_state_, name);
+  if (lua_type(lua_state_, -1) != LUA_TFUNCTION) {
     lua_pop(lua_state_, 1);
     // Missing optional callback is not an error.
     return true;

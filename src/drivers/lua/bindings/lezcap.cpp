@@ -11,6 +11,7 @@
 #include "common/logging.hpp"
 #include "common/sha256.hpp"
 #include "common/time.hpp"
+#include "policy/policy_engine.hpp"
 #include "specgen/emitters/emitters.hpp"
 
 #include <chrono>
@@ -694,9 +695,15 @@ int status_backends(lua_State* L) {
 void register_module(lua_State* L, const char* name,
                      const struct luaL_Reg* functions) {
   lua_createtable(L, 0, 8);
-  for (const luaL_Reg* reg = functions; reg->name != nullptr; ++reg) {
-    lua_pushcfunction(L, reg->func);
-    lua_setfield(L, -2, reg->name);
+  // A null function list registers the (empty) module table: some
+  // capabilities, such as dns and process, reach scripts through the event
+  // pipeline rather than a callable surface, but the namespace must still be
+  // present so the manifest gate is observable.
+  if (functions != nullptr) {
+    for (const luaL_Reg* reg = functions; reg->name != nullptr; ++reg) {
+      lua_pushcfunction(L, reg->func);
+      lua_setfield(L, -2, reg->name);
+    }
   }
   lua_setfield(L, -2, name);
 }
@@ -712,6 +719,10 @@ bool register_lezcap(lua::Sandbox& sandbox, const DriverManifest& manifest,
     error = "sandbox state unavailable";
     return false;
   }
+  // The engine already folded the manifest's declared ceilings into
+  // host_state_ref.limits; the parameter is kept so the registration point
+  // records the effective limits it was called with (E7).
+  (void)limits;
   push_host_state_ptr(L, &host_state_ref);
 
   // Read-only policy snapshot (E9): scripts query, never mutate.

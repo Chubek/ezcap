@@ -91,36 +91,49 @@ target_link_libraries(ezcap_libcap INTERFACE PkgConfig::LIBCAP)
 
 # ---------------------------------------------------------------------------
 # LuaJIT — always built from the pinned submodule revision
-# (c6ffc141a8762b41703f9287d63d93622a13dd8f, LuaJIT v2.1). Built as a static
-# library out-of-tree (BUILDDIR), so the checkout itself stays pristine.
-# Runtime discovery of a system LuaJIT is not permitted (AGENTS.md E11).
+# (c6ffc141a8762b41703f9287d63d93622a13dd8f, LuaJIT v2.1).
+#
+# LuaJIT's build system does not support out-of-tree builds (there is no
+# BUILDDIR switch; `make` must run from the source tree). To honor the
+# "checkout stays pristine" guarantee anyway, we copy the vendored tree
+# into the build directory (excluding VCS metadata and stale objects) and
+# build the static library there. Runtime discovery of a system LuaJIT is
+# never attempted (AGENTS_LUA_DRIVER.md E11).
 # ---------------------------------------------------------------------------
 set(EZCAP_LUAJIT_BUILDDIR "${CMAKE_BINARY_DIR}/third_party/LuaJIT"
-    CACHE INTERNAL "Out-of-tree build dir for the vendored LuaJIT")
+    CACHE INTERNAL "Out-of-tree build copy of the vendored LuaJIT")
+set(EZCAP_LUAJIT_SRCDIR "${EZCAP_LUAJIT_BUILDDIR}/src")
+
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/third_party/LuaJIT/"
+     DESTINATION "${EZCAP_LUAJIT_BUILDDIR}"
+     PATTERN ".git" EXCLUDE
+     PATTERN "*.o" EXCLUDE
+     PATTERN "*.a" EXCLUDE
+     PATTERN "*.so" EXCLUDE
+     PATTERN "*.so.*" EXCLUDE)
 
 include(ExternalProject)
 ExternalProject_Add(luajit_external
-  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/third_party/LuaJIT"
+  SOURCE_DIR        "${EZCAP_LUAJIT_BUILDDIR}"
   CONFIGURE_COMMAND ""
   BUILD_COMMAND
-    ${CMAKE_MAKE_PROGRAM} -j
-      "BUILDDIR=${EZCAP_LUAJIT_BUILDDIR}"
-      "CC=cc -fPIC"
-      "STATIC_CC=cc -fPIC"
-      "DYNAMIC_CC=cc -fPIC"
+    ${CMAKE_MAKE_PROGRAM} -C "${EZCAP_LUAJIT_SRCDIR}"
+      "CC=${CMAKE_C_COMPILER} -fPIC"
+      "STATIC_CC=${CMAKE_C_COMPILER} -fPIC"
+      "DYNAMIC_CC=${CMAKE_C_COMPILER} -fPIC"
       "TARGET_SYS=Linux"
       "TARGET_STRIP=:"
     libluajit.a
-  BUILD_IN_SOURCE    FALSE
-  BUILD_BYPRODUCTS   "${EZCAP_LUAJIT_BUILDDIR}/libluajit.a"
+  BUILD_IN_SOURCE    TRUE
+  BUILD_BYPRODUCTS   "${EZCAP_LUAJIT_SRCDIR}/libluajit.a"
   INSTALL_COMMAND    ""
   BUILD_ALWAYS       FALSE)
 add_library(ezcap_luajit STATIC IMPORTED GLOBAL)
 add_library(ezcap::luajit ALIAS ezcap_luajit)
 set_target_properties(ezcap_luajit PROPERTIES
-  IMPORTED_LOCATION "${EZCAP_LUAJIT_BUILDDIR}/libluajit.a")
+  IMPORTED_LOCATION "${EZCAP_LUAJIT_SRCDIR}/libluajit.a")
 target_include_directories(ezcap_luajit INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/third_party/LuaJIT/src")
+  "${EZCAP_LUAJIT_SRCDIR}")
 target_link_libraries(ezcap_luajit INTERFACE Threads::Threads m dl)
 add_dependencies(ezcap_luajit luajit_external)
 

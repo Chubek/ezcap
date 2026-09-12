@@ -48,3 +48,5 @@ void shutdown() noexcept;
   do { if (auto l = ::ezcap::logging::logger()) l->warn(__VA_ARGS__); } while (0)
 #define EZCAP_LOG_ERROR(...) \
   do { if (auto l = ::ezcap::logging::logger()) l->error(__VA_ARGS__); } while (0)
+#define EZCAP_LOG_CRITICAL(...) \
+  do { if (auto l = ::ezcap::logging::logger()) l->critical(__VA_ARGS__); } while (0)

@@ -4,6 +4,7 @@
 // The Lua side never sees this object — only its effects.
 
 #include "drivers/lua/manifests/manifest.hpp"
+#include "drivers/lua/sandbox.hpp"
 #include "specgen/model/descriptor.hpp"
 
 #include <ezcap/event.hpp>
@@ -12,6 +13,10 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+
+namespace ezcap::policy {
+class PolicyEngine;
+}
 
 namespace ezcap::drivers {
 

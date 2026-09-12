@@ -92,7 +92,7 @@ class DriverInstance {
 
  private:
   void record_fault(const std::string& code) noexcept;
-  [[nodiscard]] bool push_event_table(const ezcap::Event& event);
+  void push_event_table(const ezcap::Event& event);
 
   DriverState state_{DriverState::Discovered};
   std::uint32_t faults_{0};

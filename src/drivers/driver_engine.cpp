@@ -11,6 +11,7 @@
 
 #include "common/logging.hpp"
 #include "common/sha256.hpp"
+#include "common/time.hpp"
 
 #include <ezcap/event_types.hpp>
 #include <ezcap/policy.hpp>
@@ -179,7 +180,7 @@ bool DriverInstance::start(std::string& error) {
   return true;
 }
 
-bool DriverInstance::push_event_table(const ezcap::Event& event) {
+void DriverInstance::push_event_table(const ezcap::Event& event) {
   lua_State* L = sandbox_->state();
   lua_createtable(L, 0, 12);
 
@@ -256,7 +257,6 @@ bool DriverInstance::push_event_table(const ezcap::Event& event) {
     set_table_string(L, "title", event.browser->title);
     lua_setfield(L, -2, "browser");
   }
-  return true;
 }
 
 void DriverInstance::on_event(const ezcap::Event& event) {
