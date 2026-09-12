@@ -77,9 +77,10 @@ differ.
    `/usr/local/share/ezcap/install-linux.sh`
 3. Load the extension from `extension/dist/chromium` (or `firefox`) via
    your browser's "load unpacked" developer option.
-4. Start the daemon: `systemctl --user start ezcap` (unit provided in
-   `packaging/systemd/ezcap.service`), or run `ezcap-daemon` directly with
-   `--config`.
+4. Start the daemon: `sudo systemctl start ezcap` (unit provided in
+   `packaging/systemd/ezcap.service`), or run `sudo ezcap-daemon` directly
+   with `--config`. Direct runs create the default `/run/ezcap` socket
+   directory when absent; custom `socket_path` parent directories must exist.
 
 ### Docker
 

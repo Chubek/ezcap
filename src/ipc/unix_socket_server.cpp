@@ -3,6 +3,8 @@
 #include "common/logging.hpp"
 #include "ipc/ipc_codec.hpp"
 
+#include <ezcap/version.hpp>
+
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -11,6 +13,7 @@
 #include <cerrno>
 #include <csignal>
 #include <cstring>
+#include <string_view>
 #include <vector>
 
 namespace ezcap::ipc {
@@ -43,6 +46,34 @@ bool peer_authorized(int fd) noexcept {
   return cred.uid == ::geteuid();
 }
 
+bool ensure_default_socket_directory(std::string& error) noexcept {
+  constexpr std::string_view kRuntimeDirectory{"/run/ezcap"};
+  struct stat st {};
+  if (::lstat(kRuntimeDirectory.data(), &st) == 0) {
+    if (!S_ISDIR(st.st_mode)) {
+      error = "default socket directory exists but is not a directory";
+      return false;
+    }
+    return true;
+  }
+  if (errno != ENOENT) {
+    error = "could not inspect default socket directory: " +
+            std::string{std::strerror(errno)};
+    return false;
+  }
+  if (::mkdir(kRuntimeDirectory.data(), S_IRWXU | S_IRGRP | S_IXGRP) != 0 &&
+      errno != EEXIST) {
+    error = "could not create default socket directory: " +
+            std::string{std::strerror(errno)};
+    return false;
+  }
+  if (::lstat(kRuntimeDirectory.data(), &st) != 0 || !S_ISDIR(st.st_mode)) {
+    error = "default socket directory could not be verified";
+    return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 UnixSocketServer::UnixSocketServer(std::string socket_path,
@@ -54,6 +85,11 @@ UnixSocketServer::~UnixSocketServer() { stop(); }
 bool UnixSocketServer::start(std::string& error) {
   if (running_) {
     return true;
+  }
+
+  if (socket_path_ == ezcap::kDefaultSocketPath &&
+      !ensure_default_socket_directory(error)) {
+    return false;
   }
 
   // Remove a stale socket only if it is actually a socket; never unlink
@@ -92,7 +128,7 @@ bool UnixSocketServer::start(std::string& error) {
                              reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
   ::umask(old_umask);
   if (bind_rc != 0) {
-    error = "bind failed (directory permissions?)";
+    error = "bind failed: " + std::string{std::strerror(errno)};
     ::close(listen_fd_);
     listen_fd_ = -1;
     return false;

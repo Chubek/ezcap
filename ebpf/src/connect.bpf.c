@@ -75,13 +75,10 @@ int BPF_KPROBE(ezcap_tcp_v6_connect, struct sock *sk)
 
     fill_header(&ev->hdr, EZCAP_EVENT_TAG_CONNECT);
 
-    const struct in6_addr *daddr = NULL, *saddr = NULL;
-    BPF_CORE_READ_INTO(&daddr, sk, __sk_common.skc_v6_daddr.in6_u.u6_addr8);
-    BPF_CORE_READ_INTO(&saddr, sk, __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr8);
-    if (daddr)
-        __builtin_memcpy(ev->remote_addr6, daddr, 16);
-    if (saddr)
-        __builtin_memcpy(ev->local_addr6, saddr, 16);
+    BPF_CORE_READ_INTO(&ev->remote_addr6, sk,
+                       __sk_common.skc_v6_daddr.in6_u.u6_addr8);
+    BPF_CORE_READ_INTO(&ev->local_addr6, sk,
+                       __sk_common.skc_v6_rcv_saddr.in6_u.u6_addr8);
 
     __u16 dport = 0, sport = 0;
     BPF_CORE_READ_INTO(&dport, sk, __sk_common.skc_dport);

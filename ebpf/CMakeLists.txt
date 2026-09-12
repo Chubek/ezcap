@@ -59,42 +59,17 @@ set(EZCAP_BPF_CFLAGS
   ${EZCAP_EBPF_SRC_DIR}/include/ebpf_compat.h
 )
 
-# One object per program source; all are linked into a single loadable
-# object by the loader? No — libbpf opens one object file containing all
-# programs. Compile them into one relocatable via partial linking.
-set(EZCAP_BPF_OBJECTS
-  "${EZCAP_EBPF_GEN_DIR}/connect.bpf.o"
-  "${EZCAP_EBPF_GEN_DIR}/dns.bpf.o"
-  "${EZCAP_EBPF_GEN_DIR}/socket_state.bpf.o")
-
 add_custom_command(
-  OUTPUT ${EZCAP_BPF_OBJECTS}
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/ezcap.bpf.o"
   COMMAND ${BPF_CLANG_EXECUTABLE} ${EZCAP_BPF_CFLAGS}
-          -c "${EZCAP_EBPF_SRC_DIR}/src/connect.bpf.c"
-          -o "${EZCAP_EBPF_GEN_DIR}/connect.bpf.o"
-  COMMAND ${BPF_CLANG_EXECUTABLE} ${EZCAP_BPF_CFLAGS}
-          -c "${EZCAP_EBPF_SRC_DIR}/src/dns.bpf.c"
-          -o "${EZCAP_EBPF_GEN_DIR}/dns.bpf.o"
-  COMMAND ${BPF_CLANG_EXECUTABLE} ${EZCAP_BPF_CFLAGS}
-          -c "${EZCAP_EBPF_SRC_DIR}/src/socket_state.bpf.c"
-          -o "${EZCAP_EBPF_GEN_DIR}/socket_state.bpf.o"
+          -c "${EZCAP_EBPF_SRC_DIR}/src/ezcap.bpf.c"
+          -o "${CMAKE_CURRENT_BINARY_DIR}/ezcap.bpf.o"
   DEPENDS "${EZCAP_EBPF_GEN_DIR}/vmlinux.h"
+          "${EZCAP_EBPF_SRC_DIR}/src/ezcap.bpf.c"
           "${EZCAP_EBPF_SRC_DIR}/src/connect.bpf.c"
           "${EZCAP_EBPF_SRC_DIR}/src/dns.bpf.c"
           "${EZCAP_EBPF_SRC_DIR}/src/socket_state.bpf.c"
-  COMMENT "Compiling eBPF programs"
-  VERBATIM)
-
-# Note: each .bpf.c is self-contained with its own map definitions, so
-# they are installed as separate objects; the daemon's loader opens the
-# combined object produced by the linker below.
-add_custom_command(
-  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/ezcap.bpf.o"
-  COMMAND ${CMAKE_LINKER} -r -m elf64bpf
-          -o "${CMAKE_CURRENT_BINARY_DIR}/ezcap.bpf.o"
-          ${EZCAP_BPF_OBJECTS}
-  DEPENDS ${EZCAP_BPF_OBJECTS}
-  COMMENT "Linking combined eBPF object"
+  COMMENT "Compiling CO-RE eBPF programs"
   VERBATIM)
 
 add_custom_target(ezcap_ebpf ALL

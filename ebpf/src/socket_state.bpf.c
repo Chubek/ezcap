@@ -13,7 +13,7 @@
 #include "ebpf_common.h"
 #include "ebpf_events.h"
 
-static __always_inline void fill_header(struct ezcap_event_header *hdr)
+static __always_inline void fill_socket_header(struct ezcap_event_header *hdr)
 {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     __u64 uid_gid = bpf_get_current_uid_gid();
@@ -36,7 +36,7 @@ int ezcap_tcp_destroy_sock(struct trace_event_raw_tcp_event_sk *ctx)
     if (!ev)
         return 0;
 
-    fill_header(&ev->hdr);
+    fill_socket_header(&ev->hdr);
 
     BPF_CORE_READ_INTO(&ev->local_addr4, sk, __sk_common.skc_rcv_saddr);
     BPF_CORE_READ_INTO(&ev->remote_addr4, sk, __sk_common.skc_daddr);

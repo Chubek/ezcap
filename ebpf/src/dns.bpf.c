@@ -30,7 +30,7 @@ struct dns_header {
     __u16 arcount;
 };
 
-static __always_inline void fill_header(struct ezcap_event_header *hdr)
+static __always_inline void fill_dns_header(struct ezcap_event_header *hdr)
 {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
     __u64 uid_gid = bpf_get_current_uid_gid();
@@ -43,6 +43,7 @@ static __always_inline void fill_header(struct ezcap_event_header *hdr)
     hdr->timestamp_ns = bpf_ktime_get_ns();
 }
 
+/* Returns the copied name length, excluding the NUL terminator. */
 static __always_inline int copy_qname(const __u8 *payload, __u32 payload_len,
                                       char *out)
 {
@@ -80,7 +81,7 @@ static __always_inline int copy_qname(const __u8 *payload, __u32 payload_len,
         hops++;
     }
     out[o] = '\0';
-    return 0;
+    return (int)o;
 }
 
 SEC("socket")
@@ -131,7 +132,7 @@ int ezcap_dns_trace(struct __sk_buff *skb)
     if (!ev)
         return 0;
 
-    fill_header(&ev->hdr);
+    fill_dns_header(&ev->hdr);
 
     ev->local_addr4 = iph.saddr;
     ev->local_port = sport;
@@ -153,8 +154,9 @@ int ezcap_dns_trace(struct __sk_buff *skb)
 
     /* Copy only the question name; anything else is off-limits. */
     const __u8 *qname = (const __u8 *)data + udp_off + sizeof(struct dns_header);
-    if (copy_qname(qname, payload_len, ev->query_name) == 0)
-        ev->query_len = (__u16)(__builtin_strlen(ev->query_name) + 1);
+    const int query_name_len = copy_qname(qname, payload_len, ev->query_name);
+    if (query_name_len >= 0)
+        ev->query_len = (__u16)(query_name_len + 1);
 
     bpf_ringbuf_submit(ev, 0);
     return 0;

@@ -163,8 +163,11 @@ endif()
 
 # Packaging support files.
 if(UNIX)
-  install(FILES
+  configure_file(
     packaging/systemd/ezcap.service
+    "${CMAKE_CURRENT_BINARY_DIR}/ezcap.service" @ONLY)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/ezcap.service"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/systemd/system")
   install(FILES packaging/systemd/ezcap.conf.sample.json
     DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/ezcap" RENAME ezcap.conf.json

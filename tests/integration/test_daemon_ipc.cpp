@@ -84,8 +84,15 @@ json result_of(const std::string& raw) { return json::parse(raw); }
 
 int main() {
   // Build a minimal config pointing at a temp socket.
+  char socket_dir_template[] = "/tmp/ezcap-test-ipc.XXXXXX";
+  char* const socket_dir = ::mkdtemp(socket_dir_template);
+  if (socket_dir == nullptr) {
+    std::perror("mkdtemp");
+    return 1;
+  }
+
   ezcap::daemon::Config config;
-  config.socket_path = "/tmp/ezcap-test-ipc/ezcap.sock";
+  config.socket_path = std::string{socket_dir} + "/ezcap.sock";
   config.prefer_ebpf = false;
   config.pcap_fallback = false;  // no capture: IPC-only daemon
   ::unlink(config.socket_path.c_str());
@@ -99,6 +106,7 @@ int main() {
     std::fprintf(stderr, "note: daemon.start() refused (expected without "
                          "capture): %s\n", error.c_str());
   }
+  CHECK(!daemon.running());
 
   // --- Dispatch behavior via handle_request (no socket needed) ---------------
   {
@@ -156,7 +164,7 @@ int main() {
     const auto resp = daemon.handle_request(req);
     CHECK(!resp.ok);
     CHECK(resp.error.code == ezcap::ErrorCode::OperationNotAllowed);
-    CHECK(daemon.running());  // daemon survived
+    CHECK(!daemon.running());  // no capture backend was configured
   }
   {
     // subscribe / unsubscribe round out the allowlist.
@@ -213,6 +221,7 @@ int main() {
       ::unlink(config.socket_path.c_str());
     }
   }
+  ::rmdir(socket_dir);
 
   if (g_failures > 0) {
     std::fprintf(stderr, "daemon_ipc: %d failure(s)\n", g_failures);
