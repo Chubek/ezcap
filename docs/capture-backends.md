@@ -15,12 +15,24 @@ At startup the daemon tries backends in order:
    up. This keeps users safe from arbitrary-path loading while staying
    resilient to package/install layout differences. Privileges permitting, this
    is the richest source.
-2. **libpcap** — a live capture on the default (or configured) interface,
-   using a compiled BPF filter that admits only TCP/UDP/ICMP/DNS packet
+2. **libpcap** — a live capture on the preferred interface, using a compiled
+   BPF filter that admits only TCP/UDP/ICMP/DNS packet
    headers. Never a payload source.
 
-If eBPF is unavailable the daemon starts in *degraded mode* on pcap. If
-neither backend can start, the daemon refuses to run (fail closed).
+If eBPF is unavailable the daemon starts in *degraded mode* on pcap. The pcap
+interface selection order is:
+
+1. `EZCAP_INTERFACE` environment variable (if set and valid).
+2. The first configured interface in `interfaces` (if present).
+3. Auto-detected default interface.
+4. `"any"` fallback.
+
+If no interface can be opened, the daemon fails closed and reports startup
+failure.
+
+`EZCAP_INTERFACE` can be set in the service environment (for example via a
+systemd drop-in with `Environment=EZCAP_INTERFACE=<iface>`) or in the shell
+before launching `ezcap-daemon`.
 
 ## eBPF backend
 
