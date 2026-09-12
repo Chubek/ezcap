@@ -7,67 +7,73 @@
 
 # --- Unit tests -------------------------------------------------------------
 
-add_executable(test_packet_parser tests/unit/test_packet_parser.cpp
-  src/capture/packet_parser.cpp
-  src/common/process_info.cpp
-  src/common/logging.cpp)
+add_executable(test_packet_parser unit/test_packet_parser.cpp
+  ../src/capture/packet_parser.cpp
+  ../src/common/process_info.cpp
+  ../src/common/logging.cpp)
 target_include_directories(test_packet_parser PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_packet_parser PRIVATE ezcap::spdlog)
 add_test(NAME packet_parser COMMAND test_packet_parser)
 
-add_executable(test_ipc_codec tests/unit/test_ipc_codec.cpp
-  src/ipc/ipc_codec.cpp
-  src/common/logging.cpp)
+add_executable(test_ipc_codec unit/test_ipc_codec.cpp
+  ../src/common/error.cpp
+  ../src/common/event_types.cpp
+  ../src/common/time.cpp
+  ../src/ipc/ipc_codec.cpp
+  ../src/ipc/ipc_protocol.cpp
+  ../src/common/logging.cpp)
 target_include_directories(test_ipc_codec PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_ipc_codec PRIVATE ezcap::spdlog ezcap::nlohmann_json)
 add_test(NAME ipc_codec COMMAND test_ipc_codec)
 
-add_executable(test_redactor tests/unit/test_redactor.cpp
-  src/policy/redactor.cpp
-  src/common/logging.cpp)
+add_executable(test_redactor unit/test_redactor.cpp
+  ../src/policy/redactor.cpp
+  ../src/common/logging.cpp)
 target_include_directories(test_redactor PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_redactor PRIVATE ezcap::spdlog)
 add_test(NAME redactor COMMAND test_redactor)
 
-add_executable(test_policy tests/unit/test_policy.cpp
-  src/policy/redactor.cpp
-  src/policy/policy_engine.cpp
-  src/common/logging.cpp)
+add_executable(test_policy unit/test_policy.cpp
+  ../src/policy/redactor.cpp
+  ../src/policy/policy_engine.cpp
+  ../src/common/logging.cpp)
 target_include_directories(test_policy PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_policy PRIVATE ezcap::spdlog ezcap::nlohmann_json)
 add_test(NAME policy COMMAND test_policy)
 
-add_executable(test_correlator tests/unit/test_correlator.cpp
-  src/attribution/confidence.cpp
-  src/attribution/correlator.cpp
-  src/common/logging.cpp)
+add_executable(test_correlator unit/test_correlator.cpp
+  ../src/common/event_types.cpp
+  ../src/attribution/confidence.cpp
+  ../src/attribution/correlator.cpp
+  ../src/common/logging.cpp)
 target_include_directories(test_correlator PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../src" "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_correlator PRIVATE ezcap::spdlog)
 add_test(NAME correlator COMMAND test_correlator)
 
 # --- Integration tests -------------------------------------------------------
 # These link the whole core and exercise the composed system.
 
-add_executable(test_native_host tests/integration/test_native_host.cpp
-  native_host/src/message_reader.cpp
-  native_host/src/message_writer.cpp
-  native_host/src/daemon_client.cpp)
+add_executable(test_native_host integration/test_native_host.cpp
+  ../native_host/src/message_reader.cpp
+  ../native_host/src/message_writer.cpp
+  ../native_host/src/daemon_client.cpp
+  ../src/ipc/ipc_protocol.cpp)
 target_include_directories(test_native_host PRIVATE
-  "${CMAKE_CURRENT_SOURCE_DIR}/native_host/src"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/../native_host/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 target_link_libraries(test_native_host PRIVATE ezcap::nlohmann_json Threads::Threads)
 add_test(NAME native_host COMMAND test_native_host)
 
-add_executable(test_daemon_ipc tests/integration/test_daemon_ipc.cpp)
+add_executable(test_daemon_ipc integration/test_daemon_ipc.cpp)
 target_link_libraries(test_daemon_ipc PRIVATE ezcap_core)
 add_test(NAME daemon_ipc COMMAND test_daemon_ipc)
 
-add_executable(test_capture_pipeline tests/integration/test_capture_pipeline.cpp)
+add_executable(test_capture_pipeline integration/test_capture_pipeline.cpp)
 target_link_libraries(test_capture_pipeline PRIVATE ezcap_core)
 add_test(NAME capture_pipeline COMMAND test_capture_pipeline)
 

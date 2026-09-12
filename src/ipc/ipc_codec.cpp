@@ -2,6 +2,7 @@
 
 #include "common/time.hpp"
 
+#include <ezcap/policy.hpp>
 #include <ezcap/version.hpp>
 
 #include <algorithm>

@@ -90,7 +90,11 @@ class Redactor {
   [[nodiscard]] std::string transform_hostname(std::string_view host) const;
 
   Policy policy_;
-  std::array<bool, static_cast<std::size_t>(RedactionKind::Count)> last_redactions_{};
+  // Audit state recorded by the (const) redact calls. A redactor instance is
+  // intended to be used from a single thread; callers that need the audit
+  // read it immediately after the matching redact call.
+  mutable std::array<bool, static_cast<std::size_t>(RedactionKind::Count)>
+      last_redactions_{};
 };
 
 }  // namespace ezcap

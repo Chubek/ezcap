@@ -133,9 +133,11 @@ int main() {
   // --- Correlator: browser process ids --------------------------------------------
   {
     Correlator c;
-    c.set_browser_processes({{1234, "firefox"}, {5678, "chromium"}});
-    CHECK(c.is_browser_process(1234));
-    CHECK(!c.is_browser_process(9999));
+    c.set_browser_processes(
+        {{static_cast<ezcap::ProcessId>(1234), "firefox"},
+         {static_cast<ezcap::ProcessId>(5678), "chromium"}});
+    CHECK(c.is_browser_process(static_cast<ezcap::ProcessId>(1234)));
+    CHECK(!c.is_browser_process(static_cast<ezcap::ProcessId>(9999)));
 
     // Process match + temporal + host from an eBPF event: strong band.
     auto now = std::chrono::system_clock::now();
@@ -143,7 +145,7 @@ int main() {
     auto e = network_event(EventSource::Ebpf, "example.com");
     e.timestamp = now;
     ezcap::ProcessInfo proc;
-    proc.pid = 1234;
+    proc.pid = static_cast<ezcap::ProcessId>(1234);
     e.process = proc;
     e = c.correlate(e);
     CHECK(e.confidence > 0.69);

@@ -6,6 +6,8 @@
 #include <sys/prctl.h>
 #include <unistd.h>
 
+#include <linux/securebits.h>
+
 #include <cerrno>
 #include <cstring>
 

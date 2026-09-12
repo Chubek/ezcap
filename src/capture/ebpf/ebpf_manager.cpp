@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <chrono>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>

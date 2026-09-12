@@ -30,6 +30,8 @@ include(Dependencies)
 # Core library: everything except daemon main()
 # ---------------------------------------------------------------------------
 add_library(ezcap_core STATIC
+  src/common/error.cpp
+  src/common/event_types.cpp
   src/common/logging.cpp
   src/common/time.cpp
   src/common/process_info.cpp
@@ -44,6 +46,7 @@ add_library(ezcap_core STATIC
   src/policy/redactor.cpp
   src/policy/policy_engine.cpp
   src/ipc/ipc_codec.cpp
+  src/ipc/ipc_protocol.cpp
   src/ipc/unix_socket_server.cpp
   src/security/privilege_drop.cpp
   src/security/sandbox.cpp
@@ -56,6 +59,7 @@ add_library(ezcap_core STATIC
 target_include_directories(ezcap_core PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ebpf/include"
 )
 target_link_libraries(ezcap_core PUBLIC
   ezcap::nlohmann_json
@@ -92,6 +96,7 @@ add_executable(ezcap-native-host
   native_host/src/message_reader.cpp
   native_host/src/message_writer.cpp
   native_host/src/daemon_client.cpp
+  src/ipc/ipc_protocol.cpp
 )
 target_include_directories(ezcap-native-host PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")

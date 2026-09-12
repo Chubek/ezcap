@@ -55,6 +55,10 @@ struct SqliteStore::Impl {
   std::atomic<std::uint64_t> dropped{0};
   std::atomic<std::uint32_t> version{0};
 
+  /// Writer thread entry point. A static member so it can name the private
+  /// nested type without widening the class's public interface.
+  static void writer_loop(Impl* impl);
+
   ~Impl() {
     {
       std::lock_guard<std::mutex> lock{queue_mutex};
@@ -188,7 +192,9 @@ bool write_one(sqlite3* db, const PendingWrite& w) noexcept {
   return rc == SQLITE_DONE;
 }
 
-void writer_loop(SqliteStore::Impl* impl) {
+}  // namespace
+
+void SqliteStore::Impl::writer_loop(Impl* impl) {
   std::vector<PendingWrite> batch;
   while (true) {
     {
@@ -217,8 +223,6 @@ void writer_loop(SqliteStore::Impl* impl) {
     }
   }
 }
-
-}  // namespace
 
 SqliteStore::SqliteStore(std::string path, std::string& error)
     : impl_{std::make_unique<Impl>()} {
@@ -251,7 +255,8 @@ SqliteStore::SqliteStore(std::string path, std::string& error)
 
   impl_->queue.reserve(64);
   try {
-    impl_->writer = std::make_unique<std::thread>(writer_loop, impl_.get());
+    impl_->writer =
+        std::make_unique<std::thread>(Impl::writer_loop, impl_.get());
   } catch (...) {
     error = "cannot start storage writer thread";
     impl_.reset();

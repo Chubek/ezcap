@@ -4,6 +4,8 @@
 
 #include "ipc/ipc_codec.hpp"
 
+#include <ezcap/policy.hpp>
+
 #include <nlohmann/json.hpp>
 
 #include <cstdio>

@@ -54,7 +54,13 @@ endif()
 find_package(SQLite3 REQUIRED)
 add_library(ezcap_sqlite3 INTERFACE)
 add_library(ezcap::sqlite3 ALIAS ezcap_sqlite3)
-target_link_libraries(ezcap_sqlite3 INTERFACE SQLite::SQLite3)
+# Modern FindSQLite3 exports SQLite3::SQLite3; older CMake modules only
+# provided the deprecated SQLite::SQLite3 name, so accept either.
+if(TARGET SQLite3::SQLite3)
+  target_link_libraries(ezcap_sqlite3 INTERFACE SQLite3::SQLite3)
+else()
+  target_link_libraries(ezcap_sqlite3 INTERFACE SQLite::SQLite3)
+endif()
 
 # ---------------------------------------------------------------------------
 # libpcap — system package.
