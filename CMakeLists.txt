@@ -144,41 +144,41 @@ install(TARGETS ezcap-daemon ezcap-native-host
 
 # Native messaging manifests (configured with real paths / extension ids).
 configure_file(
-  native_host/manifests/com.ezcap.host.chrome.json.in
+  "${CMAKE_CURRENT_SOURCE_DIR}/native_host/manifests/com.ezcap.host.chrome.json.in"
   "${CMAKE_CURRENT_BINARY_DIR}/manifests/com.ezcap.host.chrome.json" @ONLY)
 configure_file(
-  native_host/manifests/com.ezcap.host.firefox.json.in
+  "${CMAKE_CURRENT_SOURCE_DIR}/native_host/manifests/com.ezcap.host.firefox.json.in"
   "${CMAKE_CURRENT_BINARY_DIR}/manifests/com.ezcap.host.firefox.json" @ONLY)
 install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/manifests/com.ezcap.host.chrome.json"
   "${CMAKE_CURRENT_BINARY_DIR}/manifests/com.ezcap.host.firefox.json"
-  DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ezcap/manifests")
+  DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/ezcap/manifests")
 
 # eBPF objects to the fixed load path.
 if(EZCAP_WITH_EBPF AND EZCAP_EBPF_SUPPORTED)
   install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ebpf/"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/ezcap"
+    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/ezcap"
     FILES_MATCHING PATTERN "*.o")
 endif()
 
 # Packaging support files.
 if(UNIX)
   configure_file(
-    packaging/systemd/ezcap.service
+    "${CMAKE_CURRENT_SOURCE_DIR}/packaging/systemd/ezcap.service.in"
     "${CMAKE_CURRENT_BINARY_DIR}/ezcap.service" @ONLY)
   install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/ezcap.service"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/systemd/system")
+    DESTINATION "${CMAKE_INSTALL_FULL_LIBDIR}/systemd/system")
   install(FILES packaging/systemd/ezcap.conf.sample.json
-    DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/ezcap" RENAME ezcap.conf.json
+    DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/ezcap" RENAME ezcap.conf.json
     OPTIONAL)
   install(PROGRAMS
     "${CMAKE_CURRENT_SOURCE_DIR}/native_host/install/install-linux.sh"
     "${CMAKE_CURRENT_SOURCE_DIR}/native_host/install/uninstall-linux.sh"
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ezcap")
+    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/ezcap")
   # First-party bundled Lua drivers + manifests.
   install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/lua/dns-summary.lua"
     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/lua/dns-summary.manifest.json"
-    DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/ezcap/drivers")
+    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/ezcap/drivers")
 endif()

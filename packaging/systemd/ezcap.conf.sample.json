@@ -1,9 +1,9 @@
 {
   "socket_path": "/run/ezcap/ezcap.sock",
   "log_level": "info",
-  "prefer_ebpf": true,
+  "prefer_ebpf": false,
   "pcap_fallback": true,
-  "interfaces": [],
+  "interfaces": ["lo"],
   "pcap_filter": "tcp or udp or icmp",
   "policy": {
     "redaction_mode": "balanced",

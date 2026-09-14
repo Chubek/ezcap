@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/ezcap-daemon --config /etc/ezcap/ezcap.conf.json
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/ezcap-daemon --config @CMAKE_INSTALL_FULL_SYSCONFDIR@/ezcap/ezcap.conf.json
 Restart=on-failure
 RestartSec=2
 
